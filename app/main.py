@@ -25,7 +25,10 @@ async def on_startup():
 async def on_shutdown():
     """Remove webhook on shutdown."""
     logger.info("🛑 Removing webhook...")
-    await bot.delete_webhook()
+    # await bot.delete_webhook()
+    # In Cloud Run (Serverless), we must NOT remove the webhook on shutdown, 
+    # otherwise the bot will stop receiving messages when the container sleeps.
+    pass
 
 @app.post(config.settings.WEBHOOK_PATH)
 async def bot_webhook(request: Request):
