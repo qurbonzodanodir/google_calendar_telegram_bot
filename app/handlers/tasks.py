@@ -5,13 +5,52 @@ from app.services.calendar import calendar_service
 
 router = Router()
 
+# Simple in-memory state: {user_id: {"state": str, "data": dict}}
+USER_STATE = {}
+
+def get_main_menu():
+    kb = [
+        [types.KeyboardButton(text="📅 Agenda"), types.KeyboardButton(text="➕ New task")],
+        [types.KeyboardButton(text="🔄 Refresh Lists")]
+    ]
+    return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+
 @router.message(F.text == "➕ New task")
-async def handle_new_task_help(message: types.Message):
-    await message.answer("To create a task, just type it!\n\n"
-                         "Examples:\n"
-                         "• <i>\"Buy milk\"</i>\n"
-                         "• <i>\"Fix server bug tomorrow\"</i>\n"
-                         "• <i>\"Call Mom at 5pm\"</i>", parse_mode="HTML")
+async def handle_new_task_wizard(message: types.Message):
+    try:
+        lists = tasks_service.get_task_lists()
+        
+        # Build Keyboard with Project Names
+        kb_rows = []
+        # Group in pairs
+        row = []
+        for l in lists:
+            row.append(types.KeyboardButton(text=l['title']))
+            if len(row) == 2:
+                kb_rows.append(row)
+                row = []
+        if row:
+            kb_rows.append(row)
+        
+        kb_rows.append([types.KeyboardButton(text="🔙 Back")])
+        
+        keyboard = types.ReplyKeyboardMarkup(keyboard=kb_rows, resize_keyboard=True)
+        
+        USER_STATE[message.from_user.id] = {
+            "state": "CHOOSING_PROJECT",
+            "lists": lists # Cache lists to map title -> id
+        }
+        
+        await message.answer("📂 **Select the Project** for the new task:", reply_markup=keyboard, parse_mode="Markdown")
+        
+    except Exception as e:
+        await message.answer(f"❌ Error fetching projects: {e}")
+
+@router.message(F.text == "🔙 Back")
+async def handle_back(message: types.Message):
+    if message.from_user.id in USER_STATE:
+        del USER_STATE[message.from_user.id]
+    await message.answer("🔙 Menu Restored.", reply_markup=get_main_menu())
 
 @router.message(F.text == "🔄 Refresh Lists")
 async def handle_refresh(message: types.Message):
@@ -65,8 +104,65 @@ async def process_project_selection(callback_query: types.CallbackQuery):
 
 @router.message(F.text)
 async def handle_text(message: types.Message):
+    user_id = message.from_user.id
+    state_info = USER_STATE.get(user_id)
+    text = message.text
+
+    # Skip if command or handled elsewhere (though F.text catches everything, 
+    # so we must be careful with order. But Router priority usually helps.
+    # However, since this is a general handler, we check state FIRST.)
+    
+    if state_info:
+        state = state_info.get("state")
+        
+        # === STATE: CHOOSING PROJECT ===
+        if state == "CHOOSING_PROJECT":
+            # Check if text matches a known list
+            lists = state_info.get("lists", [])
+            selected_list = next((l for l in lists if l['title'] == text), None)
+            
+            if selected_list:
+                # Project found!
+                USER_STATE[user_id] = {
+                    "state": "WAITING_FOR_TASK",
+                    "list_id": selected_list['id'],
+                    "list_title": selected_list['title']
+                }
+                
+                # Show "Cancel" or "Back" keyboard? Or just generic
+                kb = [[types.KeyboardButton(text="🔙 Back")]]
+                keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+                
+                await message.answer(f"📝 Enter the task for **{selected_list['title']}**:", 
+                                     reply_markup=keyboard, parse_mode="Markdown")
+                return
+            else:
+                # Validation error? Or maybe user clicked a command?
+                if text == "🔙 Back":
+                    # Handled by separate handler above, but just in case
+                    return 
+                await message.answer("⚠️ Please select a project from the menu.")
+                return
+
+        # === STATE: WAITING FOR TASK ===
+        elif state == "WAITING_FOR_TASK":
+            list_id = state_info.get("list_id")
+            list_title = state_info.get("list_title")
+            
+            # Create Task
+            try:
+                tasks_service.create_task(title=text, notes="", tasklist_id=list_id)
+                await message.answer(f"✅ Saved **{text}** to **{list_title}**!", 
+                                     reply_markup=get_main_menu(), parse_mode="Markdown")
+                # Clear state
+                del USER_STATE[user_id]
+            except Exception as e:
+                await message.answer(f"❌ Error creating task: {e}")
+            return
+
+    # === NO STATE (Regular AI Logic) ===
     # Skip commands/menus handled by other routers
-    if message.text.startswith("/") or message.text in ["📅 Agenda", "➕ New task", "🔄 Refresh Lists"]:
+    if text.startswith("/") or text in ["📅 Agenda", "➕ New task", "🔄 Refresh Lists", "🔙 Back"]:
         return
 
     wait_msg = await message.answer("🧠 Thinking...")
@@ -79,10 +175,10 @@ async def handle_text(message: types.Message):
             available_lists = []
 
         # Parse with Groq
-        event_data = await groq_service.parse_event(message.text, task_lists=available_lists)
+        event_data = await groq_service.parse_event(text, task_lists=available_lists)
         
         if not event_data:
-            await wait_msg.edit_text("😕 I couldn't understand the date/time. Please try again.")
+            await wait_msg.edit_text("😕 I couldn't understand the date/time.")
             return
 
         # === HANDLE TASK ===
@@ -96,17 +192,12 @@ async def handle_text(message: types.Message):
             
             await wait_msg.edit_text(
                 f"📂 Task Detected: {event_data.get('title')}\n"
-                f"👇 <b>Select the Project:</b>",
+                f"👇 <b>Select the Project (or ignore to use default):</b>",
                 reply_markup=keyboard, parse_mode="HTML"
             )
             return
 
         # === HANDLE CALENDAR EVENT ===
-        # (Assuming event creation stays here or moves to calendar.py. 
-        # Ideally, move the EVENT creation logic to calendar.py but trigger it here? 
-        # For simplicity, I will keep event creation logic here for now, or just delegate.)
-        
-        # Let's keep event creation here for simplicity since Groq descides the type
         import datetime
         confirm_msg = f"Creating event...\n📅 **{event_data['summary']}**\n🕒 {event_data['start']} - {event_data['end']}"
         await wait_msg.edit_text(confirm_msg)
@@ -125,4 +216,4 @@ async def handle_text(message: types.Message):
         await wait_msg.edit_text(f"✅ **Event Created!**\n📅 {event_data['summary']}\n🔗 [Open in Google Calendar]({link})", parse_mode="Markdown")
 
     except Exception as e:
-        await wait_msg.edit_text(f"❌ Error: {str(e)}") 
+        await wait_msg.edit_text(f"❌ Error: {str(e)}")
