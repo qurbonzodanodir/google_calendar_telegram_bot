@@ -100,4 +100,19 @@ class CalendarService:
         event = self.service.events().insert(calendarId='primary', body=event).execute()
         return event.get('htmlLink')
 
+    def list_events(self, max_results=10):
+        """Lists upcoming events for today and tomorrow."""
+        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+        
+        # Calculate end of tomorrow
+        # (Optional: limit to 48 hours to be relevant)
+        
+        events_result = self.service.events().list(
+            calendarId='primary', timeMin=now,
+            maxResults=max_results, singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+        return events
+
 calendar_service = CalendarService()
