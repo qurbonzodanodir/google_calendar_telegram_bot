@@ -64,6 +64,37 @@ class TasksService:
         items = results.get('items', [])
         return [{'id': item['id'], 'title': item['title']} for item in items]
 
+    def get_tasks(self, tasklist_id: str = '@default', show_completed: bool = False):
+        """Returns pending tasks from a specific list."""
+        if not self.service:
+             raise Exception("Tasks Service not authenticated.")
+        
+        results = self.service.tasks().list(
+            tasklist=tasklist_id,
+            maxResults=50,
+            showCompleted=show_completed,
+            showHidden=show_completed
+        ).execute()
+        
+        return results.get('items', [])
+
+    def complete_task(self, task_id: str, tasklist_id: str = '@default'):
+        """Marks a task as completed."""
+        if not self.service:
+             raise Exception("Tasks Service not authenticated.")
+        
+        # To complete, we update status to 'completed'
+        task = {
+            'id': task_id,
+            'status': 'completed'
+        }
+        
+        self.service.tasks().update(
+            tasklist=tasklist_id,
+            task=task_id,
+            body=task
+        ).execute()
+
     def create_task(self, title: str, notes: str = "", due: str = None, tasklist_id: str = '@default'):
         """Creates a task in the specified list."""
         if not self.service:
