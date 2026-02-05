@@ -26,30 +26,40 @@ class GroqService:
         current_time = datetime.datetime.now().isoformat()
         
         prompt = f"""
-        You are a smart calendar assistant. 
+        You are a smart calendar and tasks assistant. 
         Current time: {current_time}
         User Timezone: {user_timezone}
 
-        Extract the event details from the user's text: "{text}"
+        Extract the intent from the user's text: "{text}"
 
-        Return a VALID JSON object with the following fields:
-        - summary: Short title of the event
-        - start: Start time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS) in the user's timezone.
-        - end: End time in ISO 8601 format. If duration is not specified, assume 1 hour.
-        - description: Any extra details.
-        - recurrence: LIST of RRULE strings (RFC 5545) if the event repeats. Example: ["RRULE:FREQ=WEEKLY;BYDAY=MO"] for "Every Monday". Null or empty list if not recurring.
-        - reminders: Object with 'useDefault' (bool) and 'overrides' (list of {{"method": "popup", "minutes": X}}). 
-          Example for "remind 15 min before": {{"useDefault": false, "overrides": [{{"method": "popup", "minutes": 15}}]}}.
-          If no specific reminder mentioned, set "useDefault": true.
+        Determine if this is a CALENDAR EVENT (happens at a specific time, like a meeting) or a TASK (something to do, like "buy milk", usually without a specific duration).
+
+        Return a VALID JSON object.
+
+        ### Option 1: It is an EVENT
+        {{
+            "type": "event",
+            "summary": "Short title",
+            "start": "ISO 8601 (YYYY-MM-DDTHH:MM:SS)",
+            "end": "ISO 8601",
+            "description": "Details",
+            "recurrence": ["RRULE..."] or [],
+            "reminders": {{ "useDefault": false, "overrides": [...] }}
+        }}
+
+        ### Option 2: It is a TASK
+        {{
+            "type": "task",
+            "title": "Short title (e.g. Buy Milk)",
+            "notes": "Any extra details",
+            "due": "ISO 8601 (YYYY-MM-DDTHH:MM:SS) Optional. If user says 'tomorrow', set to tomorrow morning."
+        }}
 
         Time Rules:
-        - "Tomorrow" means +1 day from current time.
-        - "Next Monday" means the coming Monday.
-        - "Afternoon" usually means 14:00 (2 PM).
-        - "Morning" usually means 09:00 (9 AM).
-        - "Evening" usually means 18:00 (6 PM).
-
-        IMPORTANT: Return ONLY the JSON object. Do not wrap it in markdown code blocks like ```json ... ```. Just raw JSON.
+        - "Tomorrow" means +1 day.
+        - "Evening" = 18:00.
+        
+        Output strictly JSON.
         """
         
         try:

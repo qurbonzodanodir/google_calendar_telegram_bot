@@ -8,6 +8,7 @@ sys.path.append(os.getcwd())
 
 from app.services.groq_service import groq_service
 from app.services.calendar import calendar_service
+from app.services.tasks import tasks_service
 from app.core import config
 import datetime
 
@@ -88,7 +89,34 @@ async def test_flow():
         print(f"❌ Advanced Test Exception: {e}")
         return
 
-    print("\n🎉 ALL SYSTEMS GO! Basic and Advanced logic works perfectly.")
+
+    # 5. Test Google Tasks
+    task_text = "Buy Milk tomorrow morning"
+    print(f"\n📝 Testing Google Tasks Parsing for: '{task_text}'")
+    
+    try:
+        task_data = await groq_service.parse_event(task_text)
+        print(f"✅ Groq Task Response: {task_data}")
+        
+        if task_data.get('type') != 'task':
+            print("❌ FAIL: Expected type 'task'")
+        else:
+             print(f"✅ Task Type identified correctly.")
+             
+             print(f"\n📝 Creating Google Task...")
+             task_link = tasks_service.create_task(
+                title=task_data['title'],
+                notes=task_data.get('notes', ''),
+                due=task_data.get('due')
+             )
+             print(f"✅ Task Created Successfully!")
+             print(f"🔗 Link: {task_link}")
+
+    except Exception as e:
+        print(f"❌ Task Test Exception: {e}")
+        return
+
+    print("\n🎉 ALL SYSTEMS GO! Basic, Advanced, and Tasks logic works perfectly.")
 
 if __name__ == "__main__":
     asyncio.run(test_flow())

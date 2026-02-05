@@ -7,7 +7,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from app.core import config
 
-SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+SCOPES = [
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/tasks'
+]
 
 class CalendarService:
     def __init__(self):
@@ -47,14 +50,12 @@ class CalendarService:
 
         if token_info:
             # Reconstruct Credentials object
-            self.creds = Credentials(
-                token=token_info.get('access_token'),
-                refresh_token=token_info.get('refresh_token'),
-                token_uri=client_config.get('token_uri') or "https://oauth2.googleapis.com/token",
-                client_id=client_config.get('client_id'),
-                client_secret=client_config.get('client_secret'),
-                scopes=SCOPES
-            )
+            # Reconstruct Credentials object using helper
+            try:
+                self.creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+            except ValueError:
+                self.creds = None
+
         
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
@@ -62,10 +63,14 @@ class CalendarService:
                 self.creds.refresh(Request())
             else:
                  # In Cloud Env, we cannot launch browser. Fail explicitly.
-                 if creds_json:
-                     raise Exception("Token invalid/expired in Cloud Env. Please refresh locally and update GOOGLE_TOKEN_JSON.")
-                 else:
-                     raise Exception("Token invalid or missing. Please re-authenticate via CLI first.")
+                     if creds_json:
+                         raise Exception("Token invalid/expired in Cloud Env. Please refresh locally and update GOOGLE_TOKEN_JSON.")
+                     else:
+                         print(f"DEBUG: creds_path={creds_path}, exists={os.path.exists(creds_path)}")
+                         print(f"DEBUG: token_path={token_path}, exists={os.path.exists(token_path)}")
+                         print(f"DEBUG: client_config found? {bool(client_config)}")
+                         print(f"DEBUG: token_info found? {bool(token_info)}")
+                         raise Exception("Token invalid or missing. Please re-authenticate via CLI first.")
 
         self.service = build('calendar', 'v3', credentials=self.creds)
 

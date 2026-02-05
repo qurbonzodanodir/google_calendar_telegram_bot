@@ -4,23 +4,9 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from app.core import config
-from app.services.calendar import calendar_service
-from app.services.groq_service import groq_service
-import datetime
+from app.services.tasks import tasks_service
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Initialize bot and dispatcher
-bot = Bot(token=config.settings.TELEGRAM_BOT_TOKEN)
-dp = Dispatcher()
-
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer("👋 Salom! I'm your AI Calendar Bot.\n\n"
-                         "🎙 **Send me a voice message** or ✍️ **text**.\n"
-                         "Example: 'Book a meeting with Nodir tomorrow at 10 AM'\n"
-                         "Example: 'Gym on Friday evening'")
+# ... (Imports remain the same) ...
 
 @dp.message(F.text)
 async def handle_text(message: types.Message):
@@ -38,6 +24,21 @@ async def handle_text(message: types.Message):
             await wait_msg.edit_text("😕 I couldn't understand the date/time. Please try again.")
             return
 
+        # === HANDLE TASK ===
+        if event_data.get('type') == 'task':
+            task_link = tasks_service.create_task(
+                title=event_data['title'],
+                notes=event_data.get('notes', ''),
+                due=event_data.get('due')
+            )
+            await wait_msg.edit_text(f"✅ **Task Created!**\n"
+                                     f"📝 {event_data['title']}\n"
+                                     f"🔗 [Open Google Tasks]({task_link})", parse_mode="Markdown")
+            return
+
+        # === HANDLE CALENDAR EVENT ===
+        # (Default to event if type is missing or 'event')
+        
         # 2. visual confirmation
         confirm_msg = f"Creating event...\n📅 **{event_data['summary']}**\n🕒 {event_data['start']} - {event_data['end']}"
         
@@ -98,6 +99,19 @@ async def handle_voice(message: types.Message):
              await wait_msg.edit_text("😕 I couldn't understand the audio.")
              return
 
+        # === HANDLE TASK ===
+        if event_data.get('type') == 'task':
+            task_link = tasks_service.create_task(
+                title=event_data['title'],
+                notes=event_data.get('notes', ''),
+                due=event_data.get('due')
+            )
+            await wait_msg.edit_text(f"✅ **Task Created!**\n"
+                                     f"📝 {event_data['title']}\n"
+                                     f"🔗 [Open Google Tasks]({task_link})", parse_mode="Markdown")
+            return
+
+        # === HANDLE EVENT ===
         # 3. Create Event
         start_dt = datetime.datetime.fromisoformat(event_data['start'])
         end_dt = datetime.datetime.fromisoformat(event_data['end'])
