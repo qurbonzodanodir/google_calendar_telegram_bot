@@ -17,58 +17,55 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=config.settings.TELEGRAM_BOT_TOKEN)
 dp = Dispatcher()
 
-# Simple in-memory state storage: {user_id: task_data_dict}
-PENDING_TASKS = {}
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("👋 Hi! I'm your AI Task Manager.\n"
+                         "Tell me what to do, e.g., 'Fix login bug' or 'Meeting tomorrow at 10am'.")
 
 @dp.callback_query(lambda c: c.data.startswith("list:") or c.data == "cancel_task")
 async def process_project_selection(callback_query: types.CallbackQuery):
-    print(f"🔹 CALLBACK RECEIVED: {callback_query.data}")  # DEBUG LOG
-    
-    # Acknowledge immediately to stop loading animation
+    print(f"🔹 CALLBACK RECEIVED: {callback_query.data}")
     await callback_query.answer("Processing...")
     
-    user_id = callback_query.from_user.id
     data = callback_query.data
+    message_text = callback_query.message.text or callback_query.message.caption
     
+    # 1. Handle Cancel
     if data == "cancel_task":
-        if user_id in PENDING_TASKS:
-            del PENDING_TASKS[user_id]
         await callback_query.message.edit_text("❌ Task creation cancelled.")
         return
 
-    # Extract list_id
+    # 2. Extract Task Title from Message Text
+    # Format: "📂 Task Detected: [Title]\n👇 Select..."
+    task_title = "New Task"
+    try:
+        # Simple extraction between "Detected: " and "\n"
+        if "Task Detected: " in message_text:
+            task_title = message_text.split("Task Detected: ")[1].split("\n")[0].strip()
+        else:
+            task_title = message_text.split("\n")[0] # Fallback
+    except Exception as e:
+        print(f"⚠️ parsing error: {e}")
+        task_title = "Untitled Task"
+
+    # 3. Extract List ID
     try:
         list_id = data.split(":", 1)[1]
-        print(f"🔹 LIST ID: {list_id}") # DEBUG
     except IndexError:
-        await callback_query.message.edit_text("❌ Invalid Data Error")
+        await callback_query.message.edit_text("❌ Invalid List Data")
         return
     
-    # Retrieve pending task info
-    task_info = PENDING_TASKS.get(user_id)
-    print(f"🔹 TASK INFO: {task_info}") # DEBUG
+    await callback_query.message.edit_text(f"⏳ Saving '{task_title}'...")
     
-    if not task_info:
-        await callback_query.message.edit_text("⚠️ Session expired (PENDING_TASKS empty). Please send the task again.")
-        return
-    
-    await callback_query.message.edit_text("⏳ Saving to Google Tasks...")
-    
-    # Create Task
+    # 4. Create Task (Stateless!)
     try:
         tasks_service.create_task(
-            title=task_info.get("title"),
-            notes=task_info.get("notes"),
-            due=task_info.get("due"),
+            title=task_title,
+            notes="", # We lose notes in this stateless approach, but Title is 90% of value. 
+                      # Future: could encode notes in invisible char or DB.
             tasklist_id=list_id
         )
-        
-        # Clean up state
-        del PENDING_TASKS[user_id]
-        
-        # Determine list name again for confirmation
-        # (We assume list exists since ID came from button)
-        await callback_query.message.edit_text(f"✅ Saved to Project!", parse_mode="HTML")
+        await callback_query.message.edit_text(f"✅ Saved <b>{task_title}</b> to Project!", parse_mode="HTML")
         
     except Exception as e:
         await callback_query.message.edit_text(f"❌ Error creating task: {e}")
@@ -99,11 +96,7 @@ async def handle_text(message: types.Message):
         # === HANDLE TASK ===
         if event_data.get('type') == 'task':
             # === INTERACTIVE ROUTING ===
-            # Instead of auto-creating, we ask the user which project.
-            
-            # Save task data to PENDING_TASKS
-            user_id = message.from_user.id
-            PENDING_TASKS[user_id] = event_data
+            # Stateless: We embed info in the message text.
             
             # Build Buttons
             buttons = []
@@ -117,8 +110,9 @@ async def handle_text(message: types.Message):
             
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             
+            # We strictly format the message so callback can parse it
             await wait_msg.edit_text(
-                f"📂 <b>Task Detected:</b> {event_data.get('title')}\n"
+                f"📂 Task Detected: {event_data.get('title')}\n"
                 f"👇 <b>Select the Project:</b>",
                 reply_markup=keyboard,
                 parse_mode="HTML"
