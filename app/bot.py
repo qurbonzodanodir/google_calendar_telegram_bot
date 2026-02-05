@@ -6,7 +6,16 @@ from aiogram.filters import Command
 from app.core import config
 from app.services.tasks import tasks_service
 
-# ... (Imports remain the same) ...
+from app.services.calendar import calendar_service
+from app.services.groq_service import groq_service
+import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Initialize bot and dispatcher
+bot = Bot(token=config.settings.TELEGRAM_BOT_TOKEN)
+dp = Dispatcher()
 
 @dp.message(F.text)
 async def handle_text(message: types.Message):
