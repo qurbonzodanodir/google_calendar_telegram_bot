@@ -1,20 +1,25 @@
 
 import json
 import datetime
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from app.core import config
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GeminiService:
     def __init__(self):
         if config.settings.GEMINI_API_KEY:
-            genai.configure(api_key=config.settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-flash-latest')
+            self.client = genai.Client(api_key=config.settings.GEMINI_API_KEY)
+            self.model_name = "gemini-flash-latest"
         else:
-            self.model = None
+            self.client = None
+            logger.warning("Gemini API Key missing!")
 
     async def parse_event(self, text: str, user_timezone: str = "Asia/Dushanbe"):
         """Parses natural language text into a structured JSON event."""
-        if not self.model:
+        if not self.client:
             raise Exception("Gemini API Key is missing in .env")
 
         current_time = datetime.datetime.now().isoformat()
@@ -47,23 +52,37 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
-            clean_text = response.text.replace('```json', '').replace('```', '').strip()
+            # Sync call in async wrapper perfectly fine for low volume, 
+            # or could use run_in_executor if needed. The SDK is sync by default usually unless async client used.
+            # google.genai has async support but let's stick to standard usage unless we check async client.
+            # Actually, standard Client is sync. Let's assume sync for now, wrapped in try/except.
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            
+            # With response_mime_type="application/json", response.text should be clean JSON
+            clean_text = response.text.strip()
             event_data = json.loads(clean_text)
             return event_data
+            
         except Exception as e:
-            print(f"Gemini Error: {e}")
+            logger.error(f"Gemini Error: {e}")
             return None
 
     async def parse_audio(self, audio_path: str, mime_type: str = "audio/ogg"):
          """Parses voice note directly into event JSON."""
-         if not self.model: return None
+         if not self.client: return None
          
          current_time = datetime.datetime.now().isoformat()
          
-         # Upload file to Gemini
          try:
-            myfile = genai.upload_file(audio_path, mime_type=mime_type)
+            # Upload file with new SDK
+            # Note: config={'mime_type': ...} usage
+            myfile = self.client.files.upload(path=audio_path, config={'mime_type': mime_type})
             
             prompt = f"""
             Listen to this voice note. It contains a calendar event request.
@@ -80,11 +99,19 @@ class GeminiService:
             }}
             """
             
-            result = self.model.generate_content([myfile, prompt])
-            clean_text = result.text.replace('```json', '').replace('```', '').strip()
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=[myfile, prompt],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            
+            clean_text = response.text.strip()
             return json.loads(clean_text)
+            
          except Exception as e:
-             print(f"Gemini Audio Error: {e}")
+             logger.error(f"Gemini Audio Error: {e}")
              return None
 
 gemini_service = GeminiService()
