@@ -31,8 +31,24 @@ class GroqService:
         # Format task lists for the prompt
         lists_prompt = ""
         if task_lists:
-            lists_prompt = "Available Task Lists:\n" + "\n".join([f"- ID: '{l['id']}', Name: '{l['title']}'" for l in task_lists])
-            lists_prompt += "\nIf 'type' is 'task', you MUST choose the most relevant 'list_id' from above. If unsure, use '@default'."
+            lists_prompt = "Available Task Lists and their likely topics:\n"
+            for l in task_lists:
+                # Add some "smart" context inference here (hardcoded for now, or dynamic later)
+                extra_context = ""
+                title_lower = l['title'].lower()
+                if "finlivo" in title_lower:
+                    extra_context = "(Keywords: backend, api, database, auth, python, server, livo, code)"
+                elif "finapp" in title_lower:
+                     extra_context = "(Keywords: frontend, app, ui, client, general)"
+                elif "sms" in title_lower:
+                    extra_context = "(Keywords: message, gateway, tcell, distribution)"
+                
+                lists_prompt += f"- ID: '{l['id']}', Name: '{l['title']}' {extra_context}\n"
+            
+            lists_prompt += "\nIf 'type' is 'task':\n"
+            lists_prompt += "1. Analyze the text for project-specific keywords (e.g. 'api' -> FinLivo).\n"
+            lists_prompt += "2. You MUST choose the most relevant 'list_id' from above based on context, even if the user didn't say the exact list name.\n"
+            lists_prompt += "3. If strictly personal or unclear, use '@default'."
         
         prompt = f"""
         You are a smart calendar and tasks assistant. 

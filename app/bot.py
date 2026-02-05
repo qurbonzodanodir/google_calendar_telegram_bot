@@ -17,6 +17,55 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=config.settings.TELEGRAM_BOT_TOKEN)
 dp = Dispatcher()
 
+# Simple in-memory state storage: {user_id: task_data_dict}
+PENDING_TASKS = {}
+
+@dp.callback_query(lambda c: c.data.startswith("list:") or c.data == "cancel_task")
+async def process_project_selection(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    data = callback_query.data
+    
+    if data == "cancel_task":
+        if user_id in PENDING_TASKS:
+            del PENDING_TASKS[user_id]
+        await callback_query.message.edit_text("❌ Task creation cancelled.")
+        return
+
+    # Extract list_id
+    try:
+        list_id = data.split(":", 1)[1]
+    except IndexError:
+        await callback_query.answer("Invalid Data")
+        return
+    
+    # Retrieve pending task info
+    task_info = PENDING_TASKS.get(user_id)
+    
+    if not task_info:
+        await callback_query.message.edit_text("⚠️ Session expired. Please send the task again.")
+        return
+    
+    await callback_query.message.edit_text("⏳ Saving...")
+    
+    # Create Task
+    try:
+        tasks_service.create_task(
+            title=task_info.get("title"),
+            notes=task_info.get("notes"),
+            due=task_info.get("due"),
+            tasklist_id=list_id
+        )
+        
+        # Clean up state
+        del PENDING_TASKS[user_id]
+        
+        # Determine list name again for confirmation
+        # (We assume list exists since ID came from button)
+        await callback_query.message.edit_text(f"✅ Saved to Project!", parse_mode="HTML")
+        
+    except Exception as e:
+        await callback_query.message.edit_text(f"❌ Error creating task: {e}")
+
 @dp.message(F.text)
 async def handle_text(message: types.Message):
     if not config.settings.GROQ_API_KEY:
@@ -42,25 +91,31 @@ async def handle_text(message: types.Message):
 
         # === HANDLE TASK ===
         if event_data.get('type') == 'task':
-            list_id = event_data.get('list_id', '@default')
+            # === INTERACTIVE ROUTING ===
+            # Instead of auto-creating, we ask the user which project.
             
-            # Find list name for display
-            list_name = "My Tasks"
+            # Save task data to PENDING_TASKS
+            user_id = message.from_user.id
+            PENDING_TASKS[user_id] = event_data
+            
+            # Build Buttons
+            buttons = []
             for l in available_lists:
-                if l['id'] == list_id:
-                    list_name = l['title']
-                    break
-
-            task_link = tasks_service.create_task(
-                title=event_data['title'],
-                notes=event_data.get('notes', ''),
-                due=event_data.get('due'),
-                tasklist_id=list_id
+                # callback_data: "list:<list_id>"
+                btn = types.InlineKeyboardButton(text=l['title'], callback_data=f"list:{l['id']}")
+                buttons.append([btn])
+            
+            # Cancel Button
+            buttons.append([types.InlineKeyboardButton(text="❌ Cancel", callback_data="cancel_task")])
+            
+            keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+            
+            await wait_msg.edit_text(
+                f"📂 <b>Task Detected:</b> {event_data.get('title')}\n"
+                f"👇 <b>Select the Project:</b>",
+                reply_markup=keyboard,
+                parse_mode="HTML"
             )
-            await wait_msg.edit_text(f"✅ **Task Created!**\n"
-                                     f"📂 List: **{list_name}**\n"
-                                     f"📝 {event_data['title']}\n"
-                                     f"🔗 [Open Google Tasks]({task_link})", parse_mode="Markdown")
             return
 
         # === HANDLE CALENDAR EVENT ===
