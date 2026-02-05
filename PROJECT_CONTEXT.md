@@ -19,6 +19,10 @@ A smart Telegram bot that manages your Google Calendar. It uses **Google Gemini*
 3.  **Google Calendar Integration**: Uses `google-api-python-client` with OAuth2.
     *   Scopes: `calendar.events` (for creating events).
     *   Auth: Reuses credentials from a local MCP server setup (`credentials.json` + `token.json`).
+5.  **Google Tasks Integration (New)**:
+    *   **Smart Distinction**: Automatically detects if you mean a "Task" (ToDo) or an "Event" (Calendar).
+    *   Scopes: `tasks` (added in Phase 2).
+    *   Creates tasks in the default list.
 4.  **Productivity Focus**: The bot complements a "Prayer Time" calendar strategy where the user has 20-minute fixed blocks for prayer, and the rest of the time is for deep work. This bot removes the friction of scheduling that deep work.
 
 ## Architecture

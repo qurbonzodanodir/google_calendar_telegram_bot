@@ -15,6 +15,18 @@ You can specify when you want to be notified.
 *   **Bot:** Sets a specific popup reminder for 15 minutes.
 *   **Default:** If you don't say anything, it uses your Google Calendar defaults.
 
+## ✅ Google Tasks (To-Do List)
+The bot is now smart enough to know when you just need to "do" something, rather than "go" somewhere.
+
+*   **User:** "Buy milk tomorrow morning"
+*   **Bot:** Creates a **Google Task** (not a calendar event).
+*   **User:** "Meeting with Ali at 5pm"
+*   **Bot:** Creates a **Calendar Event**.
+
+### How it decides?
+*   **Event:** Has specific duration, location, or "meeting" context.
+*   **Task:** Action verbs ("buy", "call", "fix") without a specific duration.
+
 ## Verification
 We verified this with `test_services.py`.
 ```bash
