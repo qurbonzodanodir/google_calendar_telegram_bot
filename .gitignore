@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.env
+
+# Google Credentials (SENSITIVE)
+credentials.json
+token.json
+
+# OS specific
+.DS_Store
