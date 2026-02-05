@@ -22,6 +22,11 @@ PENDING_TASKS = {}
 
 @dp.callback_query(lambda c: c.data.startswith("list:") or c.data == "cancel_task")
 async def process_project_selection(callback_query: types.CallbackQuery):
+    print(f"🔹 CALLBACK RECEIVED: {callback_query.data}")  # DEBUG LOG
+    
+    # Acknowledge immediately to stop loading animation
+    await callback_query.answer("Processing...")
+    
     user_id = callback_query.from_user.id
     data = callback_query.data
     
@@ -34,18 +39,20 @@ async def process_project_selection(callback_query: types.CallbackQuery):
     # Extract list_id
     try:
         list_id = data.split(":", 1)[1]
+        print(f"🔹 LIST ID: {list_id}") # DEBUG
     except IndexError:
-        await callback_query.answer("Invalid Data")
+        await callback_query.message.edit_text("❌ Invalid Data Error")
         return
     
     # Retrieve pending task info
     task_info = PENDING_TASKS.get(user_id)
+    print(f"🔹 TASK INFO: {task_info}") # DEBUG
     
     if not task_info:
-        await callback_query.message.edit_text("⚠️ Session expired. Please send the task again.")
+        await callback_query.message.edit_text("⚠️ Session expired (PENDING_TASKS empty). Please send the task again.")
         return
     
-    await callback_query.message.edit_text("⏳ Saving...")
+    await callback_query.message.edit_text("⏳ Saving to Google Tasks...")
     
     # Create Task
     try:
