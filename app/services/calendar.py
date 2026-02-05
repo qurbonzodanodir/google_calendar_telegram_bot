@@ -21,23 +21,31 @@ class CalendarService:
         
         creds_path = config.settings.GOOGLE_CREDENTIALS_PATH
         token_path = config.settings.GOOGLE_TOKEN_PATH
+        creds_json = config.settings.GOOGLE_CREDENTIALS_JSON
+        token_json = config.settings.GOOGLE_TOKEN_JSON
         
-        # Load Client Info
-        if not os.path.exists(creds_path):
-             raise Exception(f"Credentials file not found at {creds_path}")
-             
-        with open(creds_path, 'r') as f:
-            client_info = json.load(f)
-            # Handle both 'installed' and 'web' formats
+        # 1. Load Client Info (Env Var OR File)
+        client_config = None
+        if creds_json:
+            client_info = json.loads(creds_json)
             client_config = client_info.get('installed') or client_info.get('web')
-            if not client_config:
-                raise Exception("Invalid credentials.json format")
-                
-        # Load Token Info
-        if os.path.exists(token_path):
+        elif os.path.exists(creds_path):
+             with open(creds_path, 'r') as f:
+                client_info = json.load(f)
+                client_config = client_info.get('installed') or client_info.get('web')
+        
+        if not client_config:
+            raise Exception("Credentials missing! Set GOOGLE_CREDENTIALS_JSON env var or mapped volume.")
+
+        # 2. Load Token Info (Env Var OR File)
+        token_info = None
+        if token_json:
+             token_info = json.loads(token_json)
+        elif os.path.exists(token_path):
             with open(token_path, 'r') as f:
                 token_info = json.load(f)
-            
+
+        if token_info:
             # Reconstruct Credentials object
             self.creds = Credentials(
                 token=token_info.get('access_token'),
@@ -53,12 +61,11 @@ class CalendarService:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             else:
-                 raise Exception("Token invalid or missing. Please re-authenticate via CLI first.")
-            
-            # Save the credentials for the next run (optional, preserving structure)
-            # data_to_save = json.loads(self.creds.to_json())
-            # with open(token_path, 'w') as token:
-            #     token.write(json.dumps(data_to_save))
+                 # In Cloud Env, we cannot launch browser. Fail explicitly.
+                 if creds_json:
+                     raise Exception("Token invalid/expired in Cloud Env. Please refresh locally and update GOOGLE_TOKEN_JSON.")
+                 else:
+                     raise Exception("Token invalid or missing. Please re-authenticate via CLI first.")
 
         self.service = build('calendar', 'v3', credentials=self.creds)
 
