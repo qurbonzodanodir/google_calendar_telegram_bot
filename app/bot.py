@@ -26,8 +26,15 @@ async def handle_text(message: types.Message):
     wait_msg = await message.answer("🧠 Thinking...")
     
     try:
+        # 0. Fetch available task lists (so LLM knows where to put it)
+        try:
+            available_lists = tasks_service.get_task_lists()
+        except:
+             # Fallback if tasks service fails (e.g.auth issue)
+            available_lists = []
+
         # 1. Parse with Groq
-        event_data = await groq_service.parse_event(message.text)
+        event_data = await groq_service.parse_event(message.text, task_lists=available_lists)
         
         if not event_data:
             await wait_msg.edit_text("😕 I couldn't understand the date/time. Please try again.")
@@ -35,12 +42,23 @@ async def handle_text(message: types.Message):
 
         # === HANDLE TASK ===
         if event_data.get('type') == 'task':
+            list_id = event_data.get('list_id', '@default')
+            
+            # Find list name for display
+            list_name = "My Tasks"
+            for l in available_lists:
+                if l['id'] == list_id:
+                    list_name = l['title']
+                    break
+
             task_link = tasks_service.create_task(
                 title=event_data['title'],
                 notes=event_data.get('notes', ''),
-                due=event_data.get('due')
+                due=event_data.get('due'),
+                tasklist_id=list_id
             )
             await wait_msg.edit_text(f"✅ **Task Created!**\n"
+                                     f"📂 List: **{list_name}**\n"
                                      f"📝 {event_data['title']}\n"
                                      f"🔗 [Open Google Tasks]({task_link})", parse_mode="Markdown")
             return

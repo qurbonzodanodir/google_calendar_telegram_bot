@@ -18,17 +18,28 @@ class GroqService:
             self.client = None
             logger.warning("GROQ API Key missing!")
 
-    async def parse_event(self, text: str, user_timezone: str = "Asia/Dushanbe"):
-        """Parses natural language text into a structured JSON event using Llama 3."""
+    async def parse_event(self, text: str, user_timezone: str = "Asia/Dushanbe", task_lists: list = None):
+        """
+        Parses natural language text into a structured JSON event using Llama 3.
+        :param task_lists: Optional list of dicts [{'id': '...', 'title': '...'}, ...]
+        """
         if not self.client:
             raise Exception("GROQ API Key is missing in .env")
 
         current_time = datetime.datetime.now().isoformat()
         
+        # Format task lists for the prompt
+        lists_prompt = ""
+        if task_lists:
+            lists_prompt = "Available Task Lists:\n" + "\n".join([f"- ID: '{l['id']}', Name: '{l['title']}'" for l in task_lists])
+            lists_prompt += "\nIf 'type' is 'task', you MUST choose the most relevant 'list_id' from above. If unsure, use '@default'."
+        
         prompt = f"""
         You are a smart calendar and tasks assistant. 
         Current time: {current_time}
         User Timezone: {user_timezone}
+        
+        {lists_prompt}
 
         Extract the intent from the user's text: "{text}"
 
@@ -52,7 +63,8 @@ class GroqService:
             "type": "task",
             "title": "Short title (e.g. Buy Milk)",
             "notes": "Any extra details",
-            "due": "ISO 8601 (YYYY-MM-DDTHH:MM:SS) Optional. If user says 'tomorrow', set to tomorrow morning."
+            "due": "ISO 8601 (YYYY-MM-DDTHH:MM:SS) Optional. If user says 'tomorrow', set to tomorrow morning.",
+            "list_id": "ID of the list (or '@default')"
         }}
 
         Time Rules:

@@ -55,8 +55,17 @@ class TasksService:
         if self.creds:
             self.service = build('tasks', 'v1', credentials=self.creds)
 
-    def create_task(self, title: str, notes: str = "", due: str = None):
-        """Creates a task in the default list."""
+    def get_task_lists(self):
+        """Returns a list of all task lists."""
+        if not self.service:
+             raise Exception("Tasks Service not authenticated.")
+        
+        results = self.service.tasklists().list(maxResults=30).execute()
+        items = results.get('items', [])
+        return [{'id': item['id'], 'title': item['title']} for item in items]
+
+    def create_task(self, title: str, notes: str = "", due: str = None, tasklist_id: str = '@default'):
+        """Creates a task in the specified list."""
         if not self.service:
              raise Exception("Tasks Service not authenticated.")
 
@@ -78,7 +87,7 @@ class TasksService:
                 # If parsing fails, just ignore due date to avoid crash
                 pass
 
-        result = self.service.tasks().insert(tasklist='@default', body=task).execute()
+        result = self.service.tasks().insert(tasklist=tasklist_id, body=task).execute()
         # API response usually has 'selfLink' or 'webViewLink'. 'links' structure is rare for insert.
         return result.get('webViewLink') or result.get('selfLink') or result.get('id')
 
