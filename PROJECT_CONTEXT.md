@@ -1,7 +1,12 @@
 # Project Context: Telegram Calendar Bot
 
+**Date:** Feb 5, 2026
+**Status:** 🟢 Live (Deployed on Google Cloud Run)
+**Repository:** [github.com/qurbonzodanodir/google_calendar_telegram_bot](https://github.com/qurbonzodanodir/google_calendar_telegram_bot)
+**Live Bot URL:** `https://google-calendar-telegram-bot-410038261083.europe-west1.run.app`
+
 ## Overview
-This project is a Telegram Bot that allows the user (`nodir`) to add events to their Google Calendar using natural language text or voice messages.
+A smart Telegram bot that manages your Google Calendar. It uses **Google Gemini** to understand natural language (text & voice) and **FastAPI** for webhooks.
 
 ## Key Features
 1.  **Natural Language Parsing**: Uses **Google Gemini** (model: `gemini-flash-latest`) to extract event details (summary, start time, end time) from user input.
