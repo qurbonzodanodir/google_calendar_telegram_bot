@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     GOOGLE_CREDENTIALS_JSON: str | None = None
     GOOGLE_TOKEN_JSON: str | None = None
     
-    GEMINI_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
     
     # Webhook Settings
     WEBHOOK_URL: str | None = None

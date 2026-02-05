@@ -6,7 +6,7 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from app.services.gemini import gemini_service
+from app.services.groq_service import groq_service
 from app.services.calendar import calendar_service
 from app.core import config
 import datetime
@@ -16,27 +16,26 @@ async def test_flow():
     
     # 1. Test Config
     print(f"Checking Config...")
-    if not config.settings.GEMINI_API_KEY:
-        print("❌ FAIL: GEMINI_API_KEY missing")
-        return
+
     if not config.settings.TELEGRAM_BOT_TOKEN:
         print("❌ FAIL: TELEGRAM_BOT_TOKEN missing")
         return
     print("✅ Config loaded.")
 
-    # 2. Test Gemini Parsing (Basic)
+    # 2. Test Groq Parsing (Basic)
     test_text = "Coffee with Nodir tomorrow at 10 AM"
-    print(f"\n🧠 Testing Gemini Parsing for: '{test_text}'")
+    print(f"\n🧠 Testing Groq Parsing for: '{test_text}'")
     
+    # 2. Parse Text
     try:
-        event_data = await gemini_service.parse_event(test_text)
+        event_data = await groq_service.parse_event(test_text)
         if event_data and 'summary' in event_data and 'start' in event_data:
-            print(f"✅ Gemini Response: {event_data}")
+            print(f"✅ Groq Response: {event_data}")
         else:
-            print(f"❌ Gemini failed. Response: {event_data}")
+            print(f"❌ Groq failed. Response: {event_data}")
             return
     except Exception as e:
-        print(f"❌ Gemini Exception: {e}")
+        print(f"❌ Groq Exception: {e}")
         return
 
     # 3. Test Calendar Insertion (Basic)
@@ -59,11 +58,11 @@ async def test_flow():
 
     # 4. Test Advanced Features (Recurrence + Reminders)
     adv_text = "Weekly Status Meeting every Monday at 11 AM, remind 15 min"
-    print(f"\n🧠 Testing Gemini Parsing for Advanced: '{adv_text}'")
+    print(f"\n🧠 Testing Groq Parsing for Advanced: '{adv_text}'")
     
     try:
-        adv_event = await gemini_service.parse_event(adv_text)
-        print(f"✅ Gemini Advanced Response: {adv_event}")
+        adv_event = await groq_service.parse_event(adv_text)
+        print(f"✅ Groq Advanced Response: {adv_event}")
         
         if not adv_event.get('recurrence'):
             print("❌ FAIL: Recurrence missing")

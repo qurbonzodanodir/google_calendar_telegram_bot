@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from app.core import config
 from app.services.calendar import calendar_service
-from app.services.gemini import gemini_service
+from app.services.groq_service import groq_service
 import datetime
 
 # Configure logging
@@ -24,15 +24,15 @@ async def cmd_start(message: types.Message):
 
 @dp.message(F.text)
 async def handle_text(message: types.Message):
-    if not config.settings.GEMINI_API_KEY:
-        await message.answer("⚠️ Please configure GEMINI_API_KEY in .env first.")
+    if not config.settings.GROQ_API_KEY:
+        await message.answer("⚠️ Please configure GROQ_API_KEY in .env first.")
         return
 
     wait_msg = await message.answer("🧠 Thinking...")
     
     try:
-        # 1. Parse with Gemini
-        event_data = await gemini_service.parse_event(message.text)
+        # 1. Parse with Groq
+        event_data = await groq_service.parse_event(message.text)
         
         if not event_data:
             await wait_msg.edit_text("😕 I couldn't understand the date/time. Please try again.")
@@ -71,8 +71,8 @@ async def handle_text(message: types.Message):
 
 @dp.message(F.voice)
 async def handle_voice(message: types.Message):
-    if not config.settings.GEMINI_API_KEY:
-        await message.answer("⚠️ Please configure GEMINI_API_KEY in .env first.")
+    if not config.settings.GROQ_API_KEY:
+        await message.answer("⚠️ Please configure GROQ_API_KEY in .env first.")
         return
 
     wait_msg = await message.answer("👂 Listening & Thinking...")
@@ -87,8 +87,8 @@ async def handle_voice(message: types.Message):
         local_filename = f"voice_{message.message_id}.ogg"
         await bot.download_file(file_path, local_filename)
 
-        # 2. Process with Gemini
-        event_data = await gemini_service.parse_audio(local_filename)
+        # 2. Process with Groq
+        event_data = await groq_service.parse_audio(local_filename)
         
         # Cleanup file
         import os

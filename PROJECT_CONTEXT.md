@@ -9,7 +9,8 @@
 A smart Telegram bot that manages your Google Calendar. It uses **Google Gemini** to understand natural language (text & voice) and **FastAPI** for webhooks.
 
 ## Key Features
-1.  **Natural Language Parsing**: Uses **Google Gemini** (model: `gemini-flash-latest`) to extract event details (summary, start time, end time) from user input.
+1.  **Natural Language Parsing**: Uses **Groq** (model: `llama-3.3-70b-versatile`) to extract event details (summary, start time, end time) from user input.
+
     *   Supports text: "Meeting tomorrow at 10am"
     *   Supports voice: Transcribes and extracts intent from audio files.
 2.  **Advanced Scheduling**:
@@ -26,7 +27,7 @@ A smart Telegram bot that manages your Google Calendar. It uses **Google Gemini*
 *   **Entry Point**: `run.py` (Polling mode).
 
 ## Current Status (Feb 5, 2026)
-*   ✅ Core logic (Gemini + Calendar) verified via `test_services.py`.
+*   ✅ Core logic (Groq + Calendar) verified via `test_services.py`.
 *   ✅ **New**: Recurring events and custom reminders implemented and verified.
 *   ✅ Bot is running locally in polling mode.
 *   ✅ User has successfully moved the project to the Desktop.
