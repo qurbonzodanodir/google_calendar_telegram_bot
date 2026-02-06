@@ -74,7 +74,7 @@ class FinLivoAgent:
                 project_root=config.PROJECT_DIR,
                 max_retries=config.MAX_RETRIES,
                 run_tests=config.RUN_TESTS,
-                test_root=config.PROJECT_ROOT # Run tests locally (in this repo)
+                test_root=config.TEST_DIR # Run only FinLivo tests
             )
             print(f"   {result}")
             
