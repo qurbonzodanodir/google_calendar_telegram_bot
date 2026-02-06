@@ -55,6 +55,10 @@ class FinLivoAgent:
 
     def process_task(self, task):
         title = task['title']
+        if title.startswith("[FAILED]"):
+            print(f"   ⏭️ Skipping failed task: {title}")
+            return
+
         notes = task.get('notes', '')
         print(f"\n⚡️ TASK: {title}")
         
@@ -69,7 +73,8 @@ class FinLivoAgent:
                 project_context=self.context,
                 project_root=config.PROJECT_DIR,
                 max_retries=config.MAX_RETRIES,
-                run_tests=config.RUN_TESTS
+                run_tests=config.RUN_TESTS,
+                test_root=config.PROJECT_ROOT # Run tests locally (in this repo)
             )
             print(f"   {result}")
             

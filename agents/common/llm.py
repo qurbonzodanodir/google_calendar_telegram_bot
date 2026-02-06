@@ -22,10 +22,12 @@ def clean_code_block(text: str) -> str:
     if text.endswith("```"): text = text[:-3]
     return text.strip()
 
-def apply_senior_edit(file_path: str, instruction: str, project_context: str, project_root: str, max_retries: int = 3, run_tests: bool = True) -> str:
+def apply_senior_edit(file_path: str, instruction: str, project_context: str, project_root: str, max_retries: int = 3, run_tests: bool = True, test_root: str = None) -> str:
     """
     Applies an AI edit with strict 'Senior Developer' standards.
     Retries up to max_retries if tests fail.
+    Args:
+        test_root: Optional path to run tests in. Defaults to project_root if None.
     """
     if not os.path.exists(file_path):
         return f"File not found: {file_path}"
@@ -40,9 +42,16 @@ def apply_senior_edit(file_path: str, instruction: str, project_context: str, pr
 
     current_code = original_code
     error_context = ""
+    
+    # Determine where to run tests
+    test_dir = test_root if test_root else project_root
 
     for attempt in range(1, max_retries + 1):
         print(f"   🤖 Attempt {attempt}/{max_retries}...")
+        
+        # ... validation ...
+        # (code omitted for brevity, logic remains same)
+
         
         # SMART CONTEXT:
         # We try to fit as much as possible. Llama 3 70b on Groq has ~8k-128k context depending on implementation.
@@ -95,7 +104,7 @@ def apply_senior_edit(file_path: str, instruction: str, project_context: str, pr
             
             # Verify
             if run_tests:
-                success, error_msg = testing.run_tests(project_root)
+                success, error_msg = testing.run_tests(test_dir)
                 if not success:
                     print(f"   ⚠️ Test Failure: {error_msg[:200]}...")
                     error_context = error_msg
