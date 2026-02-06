@@ -2,7 +2,7 @@ import time
 import os
 import sys
 from app.services.tasks.service import tasks_service
-from agents.common import knowledge, llm
+from agents.common import knowledge, llm, tools
 from agents.finlivo import config
 
 class FinLivoAgent:
@@ -73,8 +73,7 @@ class FinLivoAgent:
                 project_context=self.context,
                 project_root=config.PROJECT_DIR,
                 max_retries=config.MAX_RETRIES,
-                run_tests=config.RUN_TESTS,
-                test_root=config.TEST_DIR # Run only FinLivo tests
+                run_tests=config.RUN_TESTS
             )
             print(f"   {result}")
             
@@ -91,8 +90,25 @@ class FinLivoAgent:
             # For now, just pass
 
     def find_file(self, title, notes):
-        # Initial simple heuristic
+        # 1. Smart Discovery via LLM
+        print("   🔍 Scanning project structure...")
+        structure = tools.get_project_structure(config.PROJECT_DIR)
+        
+        task_desc = f"{title}. {notes}"
+        recommended_file = llm.find_relevant_file(task_desc, structure)
+        
+        if recommended_file:
+            full_path = os.path.join(config.PROJECT_DIR, recommended_file)
+            if os.path.exists(full_path):
+                print(f"   🤖 AI identified target: {recommended_file}")
+                return full_path
+            else:
+                 print(f"   ⚠️ AI suggested non-existent file: {recommended_file}")
+
+        # 2. Fallback to simple heuristic
         potential_files = [w for w in (title + " " + notes).split() if '.' in w]
         if potential_files:
-            return os.path.join(config.PROJECT_DIR, potential_files[0])
+             print(f"   ⚠️ Falling back to manual filename: {potential_files[0]}")
+             return os.path.join(config.PROJECT_DIR, potential_files[0])
+        
         return None
