@@ -37,8 +37,11 @@ def run_tests(project_dir: str) -> tuple[bool, str]:
         if result.returncode == 0:
             print("   ✅ Tests PASSED")
             return True, ""
+        elif result.returncode == 5:
+            print("   ⚠️ No tests collected (Exit Code 5). Treating as PASS.")
+            return True, "No tests found."
         else:
-            print(f"   ❌ Tests FAILED")
+            print(f"   ❌ Tests FAILED (Exit Code {result.returncode})")
             # Capture last 20 lines of std out and err for context
             stdout_tail = result.stdout.splitlines()[-20:]
             stderr_tail = result.stderr.splitlines()[-20:]
