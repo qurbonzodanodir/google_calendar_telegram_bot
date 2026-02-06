@@ -8,6 +8,7 @@ PROJECT_ROOT = os.path.dirname(AGENTS_DIR)
 PROJECT_DIR = "/Users/nodir/Desktop/Livo/fin-app-back"
 LIST_NAME = "FinLivo"
 MAX_RETRIES = 3
+RUN_TESTS = True # Enabled: Agent will try to find venv in project_dir
 
 # Knowledge Base
 LOCAL_KB_FILE = os.path.join(AGENTS_DIR, "knowledge_dumps", "finlivo_backend_dump_part_1.txt")

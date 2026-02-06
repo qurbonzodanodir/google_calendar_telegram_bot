@@ -12,10 +12,22 @@ def run_tests(project_dir: str) -> tuple[bool, str]:
         tuple[bool, str]: (Success, Error Log)
     """
     print("   🧪 Running tests...")
+    
+    # Detect Python Executable
+    python_cmd = "python3"
+    possible_venvs = ["venv", ".venv", "env"]
+    
+    for venv in possible_venvs:
+        venv_python = os.path.join(project_dir, venv, "bin", "python")
+        if os.path.exists(venv_python):
+            python_cmd = venv_python
+            print(f"   🐍 Using venv: {python_cmd}")
+            break
+
     try:
         # Using python3 -m pytest ensures we use the python interpreter from the environment
         result = subprocess.run(
-            ["python3", "-m", "pytest"], 
+            [python_cmd, "-m", "pytest"], 
             cwd=project_dir, 
             capture_output=True, 
             text=True,

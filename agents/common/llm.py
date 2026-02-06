@@ -22,7 +22,7 @@ def clean_code_block(text: str) -> str:
     if text.endswith("```"): text = text[:-3]
     return text.strip()
 
-def apply_senior_edit(file_path: str, instruction: str, project_context: str, project_root: str, max_retries: int = 3) -> str:
+def apply_senior_edit(file_path: str, instruction: str, project_context: str, project_root: str, max_retries: int = 3, run_tests: bool = True) -> str:
     """
     Applies an AI edit with strict 'Senior Developer' standards.
     Retries up to max_retries if tests fail.
@@ -94,14 +94,18 @@ def apply_senior_edit(file_path: str, instruction: str, project_context: str, pr
                 f.write(new_code)
             
             # Verify
-            success, error_msg = testing.run_tests(project_root)
-            
-            if success:
-                return f"✅ Fixed & Verified {os.path.basename(file_path)} (Attempt {attempt})"
+            if run_tests:
+                success, error_msg = testing.run_tests(project_root)
+                if not success:
+                    print(f"   ⚠️ Test Failure: {error_msg[:200]}...")
+                    error_context = error_msg
+                    current_code = new_code 
+                    continue # Retry with error context
             else:
-                print(f"   ⚠️ Test Failure: {error_msg[:200]}...")
-                error_context = error_msg
-                current_code = new_code 
+                 print(f"   ⚠️ Skipping tests (RUN_TESTS=False)")
+                 return f"✅ Fixed {os.path.basename(file_path)} (Tests Skipped)"
+
+            return f"✅ Fixed & Verified {os.path.basename(file_path)} (Attempt {attempt})" 
                 
         except Exception as e:
             print(f"   ❌ AI Exception: {e}")

@@ -68,14 +68,22 @@ class FinLivoAgent:
                 instruction=title, 
                 project_context=self.context,
                 project_root=config.PROJECT_DIR,
-                max_retries=config.MAX_RETRIES
+                max_retries=config.MAX_RETRIES,
+                run_tests=config.RUN_TESTS
             )
             print(f"   {result}")
             
             if "✅" in result:
                 tasks_service.complete_task(task['id'], tasklist_id=self.list_id)
+            else:
+                # Failure Case: Rename task so we don't pick it up again
+                new_title = f"[FAILED] {title}"
+                tasks_service.update_task_title(task['id'], new_title, tasklist_id=self.list_id)
+                print(f"   ⚠️ Marked task as FAILED in Google Tasks.")
         else:
             print(f"   🤔 No valid file found for task. mention filename in title/notes.")
+            # Verify if we should skip silent items to avoid loop log spam
+            # For now, just pass
 
     def find_file(self, title, notes):
         # Initial simple heuristic
