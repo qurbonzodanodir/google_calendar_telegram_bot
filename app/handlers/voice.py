@@ -1,8 +1,8 @@
 from aiogram import Router, types, F, Bot
 from app.core import config
-from app.services.groq_service import groq_service
-from app.services.tasks import tasks_service
-from app.services.calendar import calendar_service
+from app.services.ai.service import ai_service
+from app.services.tasks.service import tasks_service
+from app.services.calendar.service import calendar_service
 import os
 import datetime
 
@@ -25,8 +25,8 @@ async def handle_voice(message: types.Message, bot: Bot):
         local_filename = f"voice_{message.message_id}.ogg"
         await bot.download_file(file_path, local_filename)
 
-        # 2. Process with Groq
-        event_data = await groq_service.parse_audio(local_filename)
+        # 2. Process with AI Service
+        event_data = await ai_service.parse_audio(local_filename)
         
         os.remove(local_filename)
 

@@ -1,6 +1,5 @@
-import asyncio
-from app.services.tasks import tasks_service
-from app.services.groq_service import groq_service
+from app.services.tasks.service import tasks_service
+from app.services.ai.service import ai_service
 from app.core import config
 
 # Mock settings to avoid error if loading from env fails in script
@@ -19,12 +18,12 @@ async def test_routing():
         print(f"❌ Failed to fetch lists: {e}")
         return
 
-    # Test Case: Routing
-    text = "Fix login bug in FinApp project"
-    print(f"\n🧠 Asking Groq: '{text}'...")
+    # Test Case: Smart Routing (No explicit project name)
+    text = "Fix authentication bug in the api"
+    print(f"\n🧠 Asking AI Service: '{text}'...")
     
-    event_data = await groq_service.parse_event(text, task_lists=lists)
-    print(f"🤖 Groq Response: {event_data}")
+    event_data = await ai_service.parse_event(text, task_lists=lists)
+    print(f"🤖 AI Response: {event_data}")
     
     target_list_id = event_data.get('list_id')
     print(f"🎯 Target List ID: {target_list_id}")

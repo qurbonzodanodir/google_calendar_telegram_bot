@@ -1,5 +1,5 @@
 from aiogram import Router, types, F
-from app.services.calendar import calendar_service
+from app.services.calendar.service import calendar_service
 
 router = Router()
 

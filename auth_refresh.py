@@ -1,11 +1,11 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
 import os
 
-# New Scopes (Including Tasks)
-SCOPES = [
-    'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/tasks'
-]
+from app.services.calendar.client import SCOPES as CALENDAR_SCOPES
+from app.services.tasks.client import SCOPES as TASKS_SCOPES
+
+# Combine Scopes
+SCOPES = list(set(CALENDAR_SCOPES + TASKS_SCOPES))
 
 def refresh_auth():
     print("🔄 Removing old token.json...")

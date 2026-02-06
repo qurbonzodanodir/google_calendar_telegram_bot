@@ -6,9 +6,9 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from app.services.groq_service import groq_service
-from app.services.calendar import calendar_service
-from app.services.tasks import tasks_service
+from app.services.ai.service import ai_service
+from app.services.calendar.service import calendar_service
+from app.services.tasks.service import tasks_service
 from app.core import config
 import datetime
 
@@ -29,7 +29,7 @@ async def test_flow():
     
     # 2. Parse Text
     try:
-        event_data = await groq_service.parse_event(test_text)
+        event_data = await ai_service.parse_event(test_text)
         if event_data and 'summary' in event_data and 'start' in event_data:
             print(f"✅ Groq Response: {event_data}")
         else:
@@ -62,7 +62,7 @@ async def test_flow():
     print(f"\n🧠 Testing Groq Parsing for Advanced: '{adv_text}'")
     
     try:
-        adv_event = await groq_service.parse_event(adv_text)
+        adv_event = await ai_service.parse_event(adv_text)
         print(f"✅ Groq Advanced Response: {adv_event}")
         
         if not adv_event.get('recurrence'):
@@ -95,7 +95,7 @@ async def test_flow():
     print(f"\n📝 Testing Google Tasks Parsing for: '{task_text}'")
     
     try:
-        task_data = await groq_service.parse_event(task_text)
+        task_data = await ai_service.parse_event(task_text)
         print(f"✅ Groq Task Response: {task_data}")
         
         if task_data.get('type') != 'task':

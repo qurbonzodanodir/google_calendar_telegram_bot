@@ -3,7 +3,6 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
-    TELEGRAM_BOT_TOKEN: str
     GOOGLE_CREDENTIALS_PATH: str = "credentials.json"
     GOOGLE_TOKEN_PATH: str = "token.json"
     

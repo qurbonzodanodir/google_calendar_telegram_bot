@@ -41,7 +41,13 @@ A smart Telegram bot that manages your **Google Calendar** and **Google Tasks** 
     *   **Important**: If you re-authenticate locally, update `GOOGLE_TOKEN_JSON` in Cloud Run.
 
 ## 🔧 Project Structure
-*   `app/bot.py`: Main Telegram bot logic.
-*   `app/services/groq_service.py`: AI logic (Prompt Engineering).
-*   `app/services/calendar.py`: Google Calendar API wrapper.
-*   `app/services/tasks.py`: Google Tasks API wrapper.
+*   `app/bot.py`: Main Telegram bot logic (Startup & Routing).
+*   `app/handlers/`:
+    *   `tasks.py`: Confirmation logic & AI handling.
+    *   `calendar.py`, `voice.py`, `info.py`: Feature handlers.
+*   `app/services/`:
+    *   `ai/`: Groq + Whisper logic.
+    *   `calendar/`: Google Calendar wrapper.
+    *   `tasks/`: Google Tasks wrapper.
+*   `agents/`: Local AI Agent ("FinLivo") for code maintenance.
+*   `scripts/`: Automation scripts (Knowledge Sync, etc.).

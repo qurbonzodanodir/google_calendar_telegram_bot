@@ -1,15 +1,12 @@
 from aiogram import Router, types
 from aiogram.filters import Command
+from app.keyboards import get_main_menu
 
 router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    kb = [
-        [types.KeyboardButton(text="📅 Agenda"), types.KeyboardButton(text="➕ New task")],
-        [types.KeyboardButton(text="🔄 Refresh Lists")]
-    ]
-    keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+    keyboard = get_main_menu()
     
     await message.answer("👋 **Hello!** I'm your AI Assistant.\n\n"
                          "Use the menu below or just type naturally:\n"

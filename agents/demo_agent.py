@@ -6,7 +6,7 @@ import random
 # Add parent dir to sys.path so we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.tasks import tasks_service
+from app.services.tasks.service import tasks_service
 
 TARGET_LIST_NAME = "FinApp" # Change this to "Sms Target" etc.
 
@@ -58,3 +58,7 @@ def run_agent():
 
 if __name__ == "__main__":
     run_agent()
+
+
+
+#vapros pochemu tam 68 mb files tak mnogo 
