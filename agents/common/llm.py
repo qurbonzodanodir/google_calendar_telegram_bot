@@ -1,12 +1,12 @@
 import os
 import shutil
-from app.services.groq_service import groq_service
+from app.services.ai.client import groq_client
 from agents.common import config, testing
 
 def query_groq(prompt: str) -> str:
     """Sends a prompt to Groq and returns the response."""
     try:
-        response = groq_service.client.chat.completions.create(
+        response = groq_client.get_client().chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.3-70b-versatile",
             temperature=0.1

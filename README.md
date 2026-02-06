@@ -49,5 +49,24 @@ A smart Telegram bot that manages your **Google Calendar** and **Google Tasks** 
     *   `ai/`: Groq + Whisper logic.
     *   `calendar/`: Google Calendar wrapper.
     *   `tasks/`: Google Tasks wrapper.
-*   `agents/`: Local AI Agent ("FinLivo") for code maintenance.
 *   `scripts/`: Automation scripts (Knowledge Sync, etc.).
+
+## 🤖 AI Agent & Knowledge Sync
+
+### 1. 🧠 Update Knowledge Base (Sync)
+Run this command when you change code, so the Agent and NotebookLM know about updates:
+```bash
+# Sync Telegram Bot code
+python3 scripts/sync_knowledge.py --project telegram-bot
+
+# Sync FinLivo Backend code
+python3 scripts/sync_knowledge.py --project finlivo
+```
+*This generates a fresh dump in `knowledge_dumps/`.*
+
+### 2. ⚡️ Run FinLivo Agent
+To start the autonomous coding agent that watches your Google Tasks:
+```bash
+python3 agents/start_finlivo.py
+```
+*The agent will start watching the "FinLivo" task list.*
