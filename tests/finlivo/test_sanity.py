@@ -1,6 +1,11 @@
-def test_finlivo_backend_connection():
+def test_finlivo_external_import():
     """
-    Placeholder test for FinLivo Backend.
-    In the future, this should mock API calls to the real backend.
+    Verifies that we can import modules from the external FinLivo project.
     """
-    assert True
+    try:
+        import main
+        assert main is not None
+        print("   ✅ Successfully imported 'main' from FinLivo.")
+    except ImportError as e:
+        pytest.fail(f"Could not import module from external project: {e}")
+
